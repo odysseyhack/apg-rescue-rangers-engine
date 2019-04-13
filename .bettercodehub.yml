@@ -24,7 +24,7 @@ exclude:
 - /Front-end/BurgerApp/yarn.lock
 - /Front-end/BurgerApp/src/browserslist
 - /Front-end/BurgerApp/src/favicon.ico
-- /Front-end/BurgerApp/src/karma.config.js
+- /Front-end/BurgerApp/src/karma.conf.js
 - /Front-end/BurgerApp/src/main.ts
 - /Front-end/BurgerApp/src/polyfills.ts
 - /Front-end/BurgerApp/src/test.ts
@@ -43,7 +43,7 @@ exclude:
 - /Front-end/InformatieManagerApp/yarn.lock
 - /Front-end/InformatieManagerApp/src/browserslist
 - /Front-end/InformatieManagerApp/src/favicon.ico
-- /Front-end/InformatieManagerApp/src/karma.config.js
+- /Front-end/InformatieManagerApp/src/karma.conf.js
 - /Front-end/InformatieManagerApp/src/main.ts
 - /Front-end/InformatieManagerApp/src/polyfills.ts
 - /Front-end/InformatieManagerApp/src/test.ts
