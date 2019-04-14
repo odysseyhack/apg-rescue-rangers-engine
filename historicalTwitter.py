@@ -42,7 +42,7 @@ def build_X(path):
         
     return X, imgArray
 
-def scrapTweets(sub_concept_sets):
+def scrapTweets(sub_concept_sets,browser,image_path,start_date,end_date):
     totaalimgurls = []
     for concept_set_iter in sub_concept_sets:
         
@@ -115,7 +115,7 @@ def scrapTweets(sub_concept_sets):
     return tweet_data, totaalimgurls
 
 
-def clean(doc):
+def clean(doc,stop,exclude,lemma):
     stop_free = " ".join([i for i in doc.lower().split() if i not in stop])
     punc_free = ''.join(ch for ch in stop_free if ch not in exclude)
     normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
@@ -128,7 +128,7 @@ def display_topics(model, feature_names, no_top_words):
         topicList.append(topic)
     return topicList
 
-def computeTopic(data):
+def computeTopic(data,n_clus,no_top_words):
     tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2, stop_words='english')
     tfidf = tfidf_vectorizer.fit_transform(data)
     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
@@ -136,133 +136,135 @@ def computeTopic(data):
     
     return display_topics(nmf, tfidf_feature_names, no_top_words)
 
-
+def retrievelInfo(tag):
 # Disable warnings.
-warnings.filterwarnings("ignore")   
+    warnings.filterwarnings("ignore")   
 
-# Define concept set.
-concept_set = ["stormschade"]
+    # Define concept set.
+    concept_set = [tag]
 
-# Determine subsets of concept set.
-sub_concept_sets = list(chain(*map(lambda x: combinations(concept_set, x), range(1, len(concept_set)+1))))
+    # Determine subsets of concept set.
+    sub_concept_sets = list(chain(*map(lambda x: combinations(concept_set, x), range(1, len(concept_set)+1))))
 
-# Define start date and end date.
-start_date = "2015-01-01"
-end_date = "2015-02-01"
+    # Define start date and end date.
+    start_date = "2015-01-01"
+    end_date = "2015-02-01"
 
-# Construct web browser.
-http = urllib3.PoolManager()
-browser = webdriver.Chrome('/Users/bart/Documents/OdysseyHack/chromedriver')
+    # Construct web browser.
+    http = urllib3.PoolManager()
+    browser = webdriver.Chrome('/Users/bart/Documents/OdysseyHack/chromedriver')
 
-# Define image folder name.
-image_folder_name = "stormschade"
+    # Define image folder name.
+    image_folder_name = "stormschade"
 
-# Define image folder path.
-image_path = '/Users/bart/Documents/OdysseyHack/Data/' + image_folder_name + '/'
+    # Define image folder path.
+    image_path = '/Users/bart/Documents/OdysseyHack/Data/' + image_folder_name + '/'
 
-# Create image folder.
-if os.path.exists(image_path):
-    shutil.rmtree(image_path)
-os.makedirs(image_path)
+    # Create image folder.
+    if os.path.exists(image_path):
+        shutil.rmtree(image_path)
+    os.makedirs(image_path)
 
-# For topic modeling 
-no_top_words = 5
+    # For topic modeling 
+    no_top_words = 5
 
-# Loop over sub concept sets.
-tweet_data, imgurls =  scrapTweets(sub_concept_sets)
+    # Loop over sub concept sets.
+    tweet_data, imgurls =  scrapTweets(sub_concept_sets,browser,image_path,start_date,end_date)
 
-# Close webdriver.
-browser.close()
+    # Close webdriver.
+    browser.close()
 
-# Translate images to numpy array.
-X, imgArray = build_X(image_path)
+    # Translate images to numpy array.
+    X, imgArray = build_X(image_path)
 
-# Embed images in two dimensional space.
-X_embedded = TSNE(n_components=2).fit_transform(X)
+    # Embed images in two dimensional space.
+    X_embedded = TSNE(n_components=2).fit_transform(X)
 
-# Cluster images with k-means.
-n_clus = 4
-kmeans = KMeans(n_clusters=n_clus)
-kmeans.fit(X_embedded)
-y_kmeans = kmeans.predict(X_embedded)
+    # Cluster images with k-means.
+    n_clus = 4
+    kmeans = KMeans(n_clusters=n_clus)
+    kmeans.fit(X_embedded)
+    y_kmeans = kmeans.predict(X_embedded)
 
-# Plot clustered images.
-# plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y_kmeans, s=50, cmap='viridis')
-centers = kmeans.cluster_centers_
-# plt.scatter(centers[:, 0], centers[:, 1], c='red', s=50, alpha=0.5);
-# plt.show()
-
-# Loop over images.
-for i in range(len(imgArray)):
-    
-    # Extract k-means label.
-    k_means_label = y_kmeans[i]
-    
-    # Define label directory path.
-    label_path = image_path + "label_" + str(k_means_label) + "/"
-    
-    # Create label storage folder.
-    if not os.path.exists(label_path):
-        os.makedirs(label_path)
-        
-    # Store image in label folder.
-    shutil.move(image_path + imgArray[i],label_path + imgArray[i])
-    
-data = tweet_data['text'].tolist()
-
-for i in range(len(data)):
-
-    data[i] = str(data[i])
-    data[i] = re.sub(r'http\S+', '', data[i])
-    data[i] = re.sub(r"pic\.twitter\.com\/\w*", "", data[i])
-    data[i] = re.sub(r"[^@]+@[^@]+\.[^@]+", "", data[i])  # remove email addresses
-    data[i] = re.sub(r"\@\w+", "", data[i])  # remove user names
-    data[i] = re.sub(r'\b\w{1,3}\b', '', data[i])
-    
-stop = set(stopwords.words('dutch'))
-exclude = set(string.punctuation)
-lemma = WordNetLemmatizer()        
-doc_clean = [clean(doc).split() for doc in data]
-
-textList = []
-def getTexts():
-    return textList
-
-imgList = []
-def getImages():
-    return imgList
-
-# Loop over centers.
-for center in centers:
-    
-    # Compute Euclidian distance.
-    eucl_dis = np.sqrt(np.sum((center-X_embedded) ** 2,axis=1))
-    
-    # Find index of minimum euclidan distance.
-    min_index = np.argmin(eucl_dis)
-    
-    # Extract central image name.
-    central_image_name = imgArray[min_index]
-    
-    # Update label path.
-    label_path = image_path + "label_" + str(y_kmeans[min_index]) + "/"
-    
-    # Update central image path.
-    central_image_path = label_path + central_image_name
-    
-    # Replace backslash with forward slash.
-    # central_image_path = central_image_path.replace("/","\/")
-    
-    # Read central image.
-    imgList.append(imgurls[0][min_index])
-    central_image = cv2.imread(central_image_path,cv2.COLOR_BGRA2RGBA)   
-
-    # Show central image.
-    # plt.imshow(central_image)
+    # Plot clustered images.
+    # plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y_kmeans, s=50, cmap='viridis')
+    centers = kmeans.cluster_centers_
+    # plt.scatter(centers[:, 0], centers[:, 1], c='red', s=50, alpha=0.5);
     # plt.show()
-    
-    # Plot text.
-    textList.append(computeTopic(data)[y_kmeans[min_index]])
-    print(computeTopic(data)[y_kmeans[min_index]])
+
+    # Loop over images.
+    for i in range(len(imgArray)):
+        
+        # Extract k-means label.
+        k_means_label = y_kmeans[i]
+        
+        # Define label directory path.
+        label_path = image_path + "label_" + str(k_means_label) + "/"
+        
+        # Create label storage folder.
+        if not os.path.exists(label_path):
+            os.makedirs(label_path)
+            
+        # Store image in label folder.
+        shutil.move(image_path + imgArray[i],label_path + imgArray[i])
+        
+    data = tweet_data['text'].tolist()
+
+    for i in range(len(data)):
+
+        data[i] = str(data[i])
+        data[i] = re.sub(r'http\S+', '', data[i])
+        data[i] = re.sub(r"pic\.twitter\.com\/\w*", "", data[i])
+        data[i] = re.sub(r"[^@]+@[^@]+\.[^@]+", "", data[i])  # remove email addresses
+        data[i] = re.sub(r"\@\w+", "", data[i])  # remove user names
+        data[i] = re.sub(r'\b\w{1,3}\b', '', data[i])
+        
+    stop = set(stopwords.words('dutch'))
+    exclude = set(string.punctuation)
+    lemma = WordNetLemmatizer()        
+    doc_clean = [clean(doc,stop,exclude,lemma).split() for doc in data]
+
+    textList = []
+    # def getTexts():
+    #     return textList
+
+    imgList = []
+    # def getImages():
+    #     return imgList
+
+    # Loop over centers.
+    for center in centers:
+        
+        # Compute Euclidian distance.
+        eucl_dis = np.sqrt(np.sum((center-X_embedded) ** 2,axis=1))
+        
+        # Find index of minimum euclidan distance.
+        min_index = np.argmin(eucl_dis)
+        
+        # Extract central image name.
+        central_image_name = imgArray[min_index]
+        
+        # Update label path.
+        label_path = image_path + "label_" + str(y_kmeans[min_index]) + "/"
+        
+        # Update central image path.
+        central_image_path = label_path + central_image_name
+        
+        # Replace backslash with forward slash.
+        # central_image_path = central_image_path.replace("/","\/")
+        
+        # Read central image.
+        imgList.append(imgurls[0][min_index])
+        central_image = cv2.imread(central_image_path,cv2.COLOR_BGRA2RGBA)   
+
+        # Show central image.
+        # plt.imshow(central_image)
+        # plt.show()
+        
+        # Plot text.
+        textList.append(computeTopic(data,n_clus,no_top_words)[y_kmeans[min_index]])
+
+    return imgList,textList
+   
 
 
