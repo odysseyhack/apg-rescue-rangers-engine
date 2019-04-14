@@ -39,7 +39,6 @@ centroid = (53.21153278730481, 6.565275192260743)
 #! Needed: GPS coordinates from front-end API (SESSIONID, LAT, LONG)
 
 # For now, some static coordinates
-
 coordinates = [
         {'sessionid':1, 'loc':(53.213126181639126, 6.569566726684571)}, 
         {'sessionid':2, 'loc':(53.218574114526696, 6.565060615539551)}, 
@@ -139,7 +138,7 @@ tweets_filt = tweets[['id']]
 
 users = list(range(1,len(coordinates)+1))
 
-#randomly generate answers for now (50/50), add colnames manually copy a row when adding more tweets.... #$#REMOVE
+#randomly generate answers for now (50/50), add colnames manually. copy a row when adding more tweets.... #$#REMOVE
 answers1 = list(np.random.randint(2, size=len(coordinates)))
 answers2 = list(np.random.randint(2, size=len(coordinates)))
 answers3 = list(np.random.randint(2, size=len(coordinates)))
@@ -161,7 +160,10 @@ data = data.loc[data['sessionid'].isin(list(get_relevant_points().keys()))]
 #%% Krippendorff Alpha
 import krippendorff
 
-krippendorff.alpha(data)
+def get_validation(data):
+    ka_score = krippendorff.alpha(data)
+    print("Agreement among civilian participants about the relevance of this information set has a strength of {0}%".format(round(ka_score*100)))
+    return ka_score
 
-
+get_validation(data)
 
